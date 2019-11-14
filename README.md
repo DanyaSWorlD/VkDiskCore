@@ -56,6 +56,7 @@ VkDisk.Document.Download(url, new KnownFolder(KnownFolderType.Downloads).Path);
 - добавить возможность загрузки папок
 - переделать структуру .vkd файла для удобного файлообмена
 - подключить телеграм
+- мигрировать на .NET CORE
 
 # Контакты
 - [***Твиттор***](https://twitter.com/DiskVk)
