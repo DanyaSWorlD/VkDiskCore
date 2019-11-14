@@ -47,5 +47,17 @@ await new Auth(Login, Password)
 ```C#
 VkDisk.Document.Upload(path);
 ```
+Для загрузки файла потребуется адрес файла. Причем, если файл .vkd, то он будет скачан как надо
+```C#
+VkDisk.Document.Download(url, new KnownFolder(KnownFolderType.Downloads).Path);
+```
 
+# План развития проекта
+- добавить возможность загрузки папок
+- переделать структуру .vkd файла для удобного файлообмена
+- подключить телеграм
 
+# Контакты
+- [***Твиттор***](https://twitter.com/DiskVk)
+- [***ВКонтакте***](https://vk.com/vkdisk_ru)
+- [***vkdisk.ru***](https://vkdisk.ru)
