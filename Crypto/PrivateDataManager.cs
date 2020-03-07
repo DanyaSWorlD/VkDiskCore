@@ -1,8 +1,8 @@
-﻿using LiteDB;
-using System;
+﻿using System;
+using LiteDB;
 using VkDiskCore.DataBase;
 
-namespace VkDiskCore.Utility
+namespace VkDiskCore.Crypto
 {
     public class PrivateDataManager
     {

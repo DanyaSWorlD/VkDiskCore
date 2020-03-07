@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-
+using VkDiskCore.Crypto;
 using VkDiskCore.Utility;
 using VkNet.AudioBypassService.Utils;
 using VkNet.Model;

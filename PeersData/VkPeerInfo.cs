@@ -1,4 +1,4 @@
-﻿namespace VkDIskWPF.Utils
+﻿namespace VkDiskCore.PeersData
 {
     public class VkPeerInfo
     {

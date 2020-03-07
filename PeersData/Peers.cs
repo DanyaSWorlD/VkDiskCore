@@ -1,13 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
-using VkDIskWPF.Utils;
-
 using VkNet.Enums.Filters;
 using VkNet.Enums.SafetyEnums;
 using VkNet.Model;
 
-namespace VkDiskCore.Utility
+namespace VkDiskCore.PeersData
 {
     public static class Peers
     {
