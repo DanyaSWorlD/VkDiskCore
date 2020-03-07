@@ -64,6 +64,7 @@
     <Compile Include="Connections\Util\UploadInfo.cs" />
     <Compile Include="Connections\Util\ViewModelBase.cs" />
     <Compile Include="DataBase\Actions\DocumentDbActions.cs" />
+    <Compile Include="DataBase\DbProvider.cs" />
     <Compile Include="DataBase\MainDb.cs" />
     <Compile Include="DataBase\DbImage.cs" />
     <Compile Include="DataBase\DbUser.cs" />
