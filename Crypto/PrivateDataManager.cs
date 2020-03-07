@@ -96,6 +96,6 @@ namespace VkDiskCore.Crypto
 
         }
 
-        private static LiteDatabase GetDb => new LiteDatabase(VkDisk.LiteDbConnectionString);
+        private static LiteDatabase GetDb => DbProvider.GetDb;
     }
 }

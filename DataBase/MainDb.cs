@@ -7,7 +7,7 @@ namespace VkDiskCore.DataBase
 {
     public static class MainDb
     {
-        public static LiteDatabase GetDb => new LiteDatabase(VkDisk.LiteDbConnectionString);
+        public static LiteDatabase GetDb => DbProvider.GetDb;
 
         public static ILiteCollection<T> GetCollection<T>()
         {
