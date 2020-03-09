@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using LiteDB;
+using System.IO;
 
 namespace VkDiskCore.DataBase
 {
@@ -12,18 +13,19 @@ namespace VkDiskCore.DataBase
         {
             get
             {
+                // figth the file is busy exception
                 lock (Locker)
                 {
                     try
                     {
                         return new LiteDatabase(VkDisk.LiteDbConnectionString);
                     }
-                    catch (Exception)
+                    catch (IOException e)
                     {
                         Thread.Sleep(100);
+                        Console.WriteLine(e.Message);
                         return GetDb;
                     }
-
                 }
             }
         }

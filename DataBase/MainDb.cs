@@ -9,7 +9,7 @@ namespace VkDiskCore.DataBase
     {
         public static LiteDatabase GetDb => DbProvider.GetDb;
 
-        public static ILiteCollection<T> GetCollection<T>()
+        public static LiteCollection<T> GetCollection<T>()
         {
             return GetDb.GetCollection<T>();
         }
@@ -20,7 +20,8 @@ namespace VkDiskCore.DataBase
 
             if (collection?.Count() > 0)
             {
-                var col = collection.Find(o => o.UserId.Equals(VkDisk.VkApi.UserId ?? 0)).ToList();
+                var col = collection.Find(o => o.UserId.Equals(VkDisk.VkApi.UserId ?? 0)).ToList(); //litedb 3x
+                //var col = collection.Find(o => o.UserId == (VkDisk.VkApi.UserId ?? 0)).ToList(); //litedb 5
                 col.Sort((a, b) => b.Date.CompareTo(a.Date));
                 return col;
             }
