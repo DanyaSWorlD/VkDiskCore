@@ -4,7 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace VkDiskCore.Utility
+namespace VkDiskCore.Crypto
 {
     public static class StringCipher
     {

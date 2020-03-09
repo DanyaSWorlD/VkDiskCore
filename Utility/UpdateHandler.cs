@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
-using VkDiskCore;
 using VkDiskCore.DataBase.Actions;
 using VkNet.Model;
 using VkNet.Model.Attachments;
 using VkNet.Model.RequestParams;
 
-namespace VkDIskWPF.Utils
+namespace VkDiskCore.Utility
 {
     public static class UpdateHandler
     {
