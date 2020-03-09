@@ -1,3 +1,4 @@
+[![Build Status](https://daquga.visualstudio.com/VkDiskCore/_apis/build/status/DanyaSWorlD.VkDiskCore?branchName=master)](https://daquga.visualstudio.com/VkDiskCore/_build/latest?definitionId=3&branchName=master)
 # VkDiskCore
 VkDiskCore это базовая библиотека для создания собственных приложений VkDisk.
 Данная библиотека содержит все необходимые методы и функции для подключения к ВКонтакте и работе с разделом документы (и не только).
