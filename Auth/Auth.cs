@@ -48,14 +48,22 @@ namespace VkDiskCore.Auth
 
         public void Login()
         {
-            VkDisk.VkApi.Authorize(new ApiAuthParams
+            try
             {
-                //ApplicationId = VkDisk.ApplicationId,
-                Login = _login,
-                Password = _password,
-                //Settings = VkDisk.Settings,
-                //TwoFactorAuthorization = _action
-            });
+                VkDisk.VkApi.Authorize(new ApiAuthParams
+                                           {
+                                               //ApplicationId = VkDisk.ApplicationId,
+                                               Login = _login,
+                                               Password = _password,
+                                               //Settings = VkDisk.Settings,
+                                               //TwoFactorAuthorization = _action
+                                           });
+            }
+            catch (Exception)
+            {
+                
+            }
+          
 
             //VkDisk.VkApi.Stats.TrackVisitor();
 
