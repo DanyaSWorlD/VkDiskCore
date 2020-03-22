@@ -78,24 +78,8 @@ namespace VkDiskCore.Connections.Executors
 
                     var file = (string)JObject.Parse(resp).SelectToken("file");
 
-                    return TrySaveDoc(name, file);
+                    return (VkDisk.VkApi.Docs.Save(file, name, null)[0].Instance as Document)?.Uri;
                 }
-            }
-        }
-
-        private string TrySaveDoc(string name, string file, string capcha = null, long sid = -1)
-        {
-            try
-            {
-                return capcha == null
-                    ? (VkDisk.VkApi.Docs.Save(title: name, file: file)[0].Instance as Document).Uri
-                    : (VkDisk.VkApi.Docs.Save(title: name, file: file, captchaSid: sid, captchaKey: capcha)[0].Instance as Document).Uri;
-            }
-            catch (VkNet.Exception.CaptchaNeededException cne)
-            {
-                var image = (Bitmap)Image.FromStream(WebRequest.Create(cne.Img).GetResponse().GetResponseStream() ?? throw new InvalidOperationException());
-                var cap = VkDisk.SolveCaptcha(image);
-                return TrySaveDoc(name, file, cap, (long)cne.Sid);
             }
         }
 
