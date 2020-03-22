@@ -1,132 +1,95 @@
 ﻿using System;
-using System.Threading.Tasks;
+
 using VkDiskCore.Crypto;
-using VkDiskCore.Utility;
+
+using VkNet;
+using VkNet.AudioBypassService.Exceptions;
 using VkNet.AudioBypassService.Utils;
+using VkNet.Exception;
 using VkNet.Model;
+using VkNet.Model.RequestParams;
 
 namespace VkDiskCore.Auth
 {
-    public class Auth
+    /// <summary>
+    /// Provides everything needed to authenticate
+    /// </summary>
+    public static class Auth
     {
-        private readonly string _login;
-        private readonly string _password;
-        private Func<string> _action;
-
-        public delegate void ResultDelegate(bool result);
-
-        public Auth(string login, string password)
-        {
-            this._login = login;
-            this._password = password;
-        }
-
-        public Auth WithTwoFactor(Func<string> action)
-        {
-            _action = action;
-            return this;
-        }
-
-        public async Task LoginAsync()
-        {
-            await Task.Run(() => Login());
-        }
-
         /// <summary>
-        /// Попытка войти с сохраненными данными
+        /// Authorization via login & password, with saving credentials to <see cref="PrivateDataManager"/> (with cipher)
         /// </summary>
-        /// <returns>успешно или нет</returns>
-        public static async Task<bool> TryLoginAsync(Func<string> twoFactor = null)
-        {
-            return await Task.Run(() => TryLogin(twoFactor));
-        }
-
-        public static async Task<bool> TryTokenLoginAsync()
-        {
-            return await Task.Run(() => TryTokenLogin());
-        }
-
-        public void Login()
+        /// <param name="login"> user's login </param>
+        /// <param name="password"> user's password </param>
+        /// <param name="twoFactor"> func returning user's 2factor code </param>
+        /// <returns> is auth successful </returns>
+        public static bool WithPass(string login, string password, Func<string> twoFactor = null)
         {
             try
             {
-                VkDisk.VkApi.Authorize(new ApiAuthParams
-                                           {
-                                               //ApplicationId = VkDisk.ApplicationId,
-                                               Login = _login,
-                                               Password = _password,
-                                               //Settings = VkDisk.Settings,
-                                               //TwoFactorAuthorization = _action
-                                           });
+                VkDisk.VkApi.Authorize(
+                    new ApiAuthParams
+                    {
+                        Login = login,
+                        Password = password,
+                        TwoFactorAuthorization = twoFactor
+                    });
             }
-            catch (Exception)
+            catch (Exception e) when (e is VkApiAuthorizationException || e is VkAuthException)
             {
-                
-            }
-          
-
-            //VkDisk.VkApi.Stats.TrackVisitor();
-
-            if (VkDisk.VkApi.Token != null)
-            {
-                User.UserId = VkDisk.VkApi.UserId.ToString();
-                PrivateDataManager.SaveLoginPass(_login, _password);
-                PrivateDataManager.SaveToken(VkDisk.VkApi.Token, DateTime.Now);
-            }
-        }
-
-        /// <summary>
-        /// Попытка войти с сохраненными данными
-        /// </summary>
-        /// <returns>успешно или нет</returns>
-        private static bool TryLogin(Func<string> twoFactor)
-        {
-            if (PrivateDataManager.Login == null) return false;
-
-            var login = PrivateDataManager.Login;
-
-            try
-            {
-                VkDisk.VkApi.Authorize(new ApiAuthParams
-                {
-                    //ApplicationId = VkDisk.ApplicationId,
-                    //Settings = VkDisk.Settings,
-                    Login = login,
-                    Password = PrivateDataManager.Password,
-                    //TwoFactorAuthorization = twoFactor
-                });
-            }
-            catch
-            {
+                // catch wrong login or password exception
                 return false;
             }
 
-            if (VkDisk.VkApi.Token == null) return false;
+            // if token is null we might be not authorized 
+            if (VkDisk.VkApi.Token == null) return VkDisk.VkApi.IsAuthorized;
 
+            // get user id
             User.UserId = VkDisk.VkApi.UserId.ToString();
-            PrivateDataManager.SaveToken(VkDisk.VkApi.Token);
 
-            //VkDisk.VkApi.Stats.TrackVisitor();
+            // save login, pass and token
+            PrivateDataManager.SaveLoginPass(login, password);
+            PrivateDataManager.SaveToken(VkDisk.VkApi.Token, DateTime.Now);
 
-            return VkDisk.VkApi.Token != null;
+            // return VkApi authorization state
+            return VkDisk.VkApi.IsAuthorized;
         }
 
-        private static bool TryTokenLogin()
+        /// <summary>
+        /// Auth with saved in <see cref="PrivateDataManager"/> login & password />
+        /// </summary>
+        /// <param name="twoFactor">  func returning user's 2factor code </param>
+        /// <returns> is auth successful </returns>
+        public static bool WithSavedPass(Func<string> twoFactor = null)
         {
+            // if any data is null, auth will fail with exception, so, return false right now
+            if (PrivateDataManager.Login == null || PrivateDataManager.Password == null) return false;
+
+            return WithPass(PrivateDataManager.Login, PrivateDataManager.Password, twoFactor);
+        }
+
+        /// <summary>
+        /// Authorization via token. Token got from <see cref="PrivateDataManager"/>
+        /// </summary>
+        /// <returns> is auth successful? </returns>
+        public static bool WithToken()
+        {
+            // check token exists
             if (PrivateDataManager.TokenAssigned == null) return false;
 
+            // check token not expired
             if (PrivateDataManager.TokenExpire != null)
-                if (PrivateDataManager.TokenAssigned.Value.AddSeconds(PrivateDataManager.TokenExpire.Value) <
-                    DateTime.Now)
+                if (PrivateDataManager.TokenAssigned.Value.AddSeconds(PrivateDataManager.TokenExpire.Value) < DateTime.Now)
                     return false;
 
+            // renew token if token expired
             if (PrivateDataManager.TokenAssigned.Value.AddMonths(3) < DateTime.Now)
-            {
-                var receipt = ((VkAndroidAuthorization)VkDisk.VkApi.AuthorizationFlow).ReceiptParser.GetReceipt().Result;
-                var newToken = ((VkAndroidAuthorization)VkDisk.VkApi.AuthorizationFlow).RefreshTokenAsync(PrivateDataManager.Token, receipt).Result;
-                PrivateDataManager.SaveToken(newToken);
-            }
+                UpdateToken();
 
+            // handle on token expired event
+            VkDisk.VkApi.OnTokenExpires += UpdateToken;
+
+            // login with token
             try
             {
                 VkDisk.VkApi.Authorize(new ApiAuthParams
@@ -141,9 +104,33 @@ namespace VkDiskCore.Auth
                 return false;
             }
 
-            //if (VkDisk.VkApi.Token == null) return false;
+            // renew token if token expired (if we authenticated we should 100% have chance to renew token)
+            if (PrivateDataManager.TokenAssigned.Value.AddMonths(3) < DateTime.Now)
+                UpdateToken();
 
+            // check token usability
+            try
+            {
+                VkDisk.VkApi.Groups.Get(new GroupsGetParams());
+            }
+            catch (AccessTokenInvalidException)
+            {
+                return false;
+            }
+
+            // all seems ok, let return vk net auth state
             return VkDisk.VkApi.IsAuthorized;
+        }
+
+        /// <summary>
+        /// renew token
+        /// </summary>
+        /// <returns> auth success </returns>
+        private static void UpdateToken(VkApi sender = null)
+        {
+            var receipt = ((VkAndroidAuthorization)VkDisk.VkApi.AuthorizationFlow).ReceiptParser.GetReceipt().Result;
+            var newToken = ((VkAndroidAuthorization)VkDisk.VkApi.AuthorizationFlow).RefreshTokenAsync(PrivateDataManager.Token, receipt).Result;
+            PrivateDataManager.SaveToken(newToken);
         }
     }
 }
