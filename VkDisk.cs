@@ -27,21 +27,14 @@ namespace VkDiskCore
 
         public static string ImageCacheDir { get; set; } = "imageCache/";
 
-        public static async Task Auth(string login, string pass)
-        {
-            await new Auth.Auth(login, pass).LoginAsync();
-        }
-
-        public static async Task<bool> TryAuthCached()
-        {
-            return await VkDiskCore.Auth.Auth.TryLoginAsync();
-        }
-
         public static void Init(int appId)
         {
             var services = new ServiceCollection();
             services.AddAudioBypass();
-            VkApi = new Va(services);
+            VkApi = new Va(services)
+            {
+                CaptchaSolver = new VkNetCaptchaSolver()
+            };
 
             ImageCache.Init();
 
@@ -53,9 +46,9 @@ namespace VkDiskCore
             ImageCache.Stop();
         }
 
-        public static string SolveCapcha(Bitmap capcha)
+        public static string SolveCaptcha(Bitmap captcha)
         {
-            return CapchaSolver?.Invoke(capcha);
+            return CapchaSolver?.Invoke(captcha);
         }
     }
 }

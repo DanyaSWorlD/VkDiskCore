@@ -41,8 +41,9 @@ namespace VkDiskCore.Crypto
                 if (user == null) return;
 
                 user.UserId = User.UserId;
-                user.TokenExpire = expire ?? 999999999;
                 user.TokenAssigned = assigned ?? DateTime.Now;
+                user.TokenExpire = expire ?? 3600 * 24 * 90;
+
                 user.Token = StringCipher.Encrypt(token, user.UserId);
 
                 users.Update(user);

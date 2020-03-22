@@ -94,7 +94,7 @@ namespace VkDiskCore.Connections.Executors
             catch (VkNet.Exception.CaptchaNeededException cne)
             {
                 var image = (Bitmap)Image.FromStream(WebRequest.Create(cne.Img).GetResponse().GetResponseStream() ?? throw new InvalidOperationException());
-                var cap = VkDisk.SolveCapcha(image);
+                var cap = VkDisk.SolveCaptcha(image);
                 return TrySaveDoc(name, file, cap, (long)cne.Sid);
             }
         }
