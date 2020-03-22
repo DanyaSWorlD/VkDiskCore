@@ -7,12 +7,9 @@ VkDiskCore это базовая библиотека для создания с
 ## Авторизация
 
 ```c#
- private async void Login()
+ private void Login()
  {
-      await new Auth(Login, Password)
-          .LoginAsync();
-
-      if (!VkDisk.VkApi.IsAuthorized)
+      if (!Auth.WithPass(Login, Password)
           return;
           
       // Авторизация прошла успешно! 
@@ -22,21 +19,29 @@ VkDiskCore это базовая библиотека для создания с
 В VkDiskCore реализован механизм сохранения токенов, поэтому можно попробовать залогиниться по сохраненному токену
 
 ```C#
-private async void TryLogin()
+private void TryLogin()
 {
-    if (await Auth.TryTokenLoginAsync())
+    // попробовать залогиниться с сохраненным токеном
+    if (Auth.WithToken())
       // Успешно залогигинены!
-    else
-      // Надо вводить пароль
+    
+    // попробовать залогиниться с сохраненными логином и паролем
+    if(Auth.WithSavedPass())
+      // успешно залогинены
+    
+    // надо вводить пароль
 }
 ```
 
 Для двухфакторной авторизации:
 ```C#
-await new Auth(Login, Password)
-      .WithTwoFactor(WaitTwoFactor)
-      .LoginAsync();
+Auth.WithPass(Login, Password, WaitTwoFactor);
 ```
+или
+```C#
+Auth.WithSavedPass(WaitTwoFactor);
+```
+Где ```WaitTwoFactor``` возвращает вводимый пользователем код в формате ``` string ```
 
 После авторизации id пользователя и токен можно получить из статичного класса ```User```, либо обратившись к VkNet
 ```C#
