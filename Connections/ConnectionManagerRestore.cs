@@ -74,6 +74,7 @@ namespace VkDiskCore.Connections
                         vkdEx.Download(s, links[i]);
                     }
 
+                    File.Move(file, $"{info.Folder}\\{info.Name}");
                     info.LoadState = LoadState.Finished;
                 }
             }
