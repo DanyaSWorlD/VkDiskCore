@@ -35,6 +35,7 @@ namespace VkDiskCore.Connections.Executors
                 var buffer = new byte[Mb];
 
                 Skip(stream, (int)total);
+                writeStream.Position = total;
 
                 var watch = new Stopwatch();
                 watch.Start();
@@ -62,9 +63,7 @@ namespace VkDiskCore.Connections.Executors
         private void Skip(Stream s, int n)
         {
             if (s.CanSeek)
-            {
                 s.Seek(n, SeekOrigin.Current);
-            }
             else
             {
                 const int bufsize = 65536;
