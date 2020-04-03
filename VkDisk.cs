@@ -18,15 +18,19 @@ using Va = VkNet.VkApi;
 
 namespace VkDiskCore
 {
+    using VkNet.Abstractions.Core;
+    using VkNet.Utils;
+    using VkNet.Utils.AntiCaptcha;
+
     public static class VkDisk
     {
         public static ulong ApplicationId;
 
         public static St Settings;
 
-        public delegate string CapchaSolverDelegate(Bitmap capcha);
+        public delegate string CaptchaSolverDelegate(Bitmap captcha);
 
-        public static CapchaSolverDelegate CapchaSolver { get; set; }
+        public static CaptchaSolverDelegate CaptchaSolver { get; set; }
 
         public static DocumentCategory Document { get; } = new DocumentCategory();
 
@@ -40,15 +44,13 @@ namespace VkDiskCore
         {
             var services = new ServiceCollection();
             services.AddAudioBypass();
+            services.AddSingleton<ICaptchaSolver, VkNetCaptchaSolver>();
 
             // uncomment, if need logging:
             // AddLogger(services);
             // --------------------
             // init vk api
-            VkApi = new Va(services)
-            {
-                CaptchaSolver = new VkNetCaptchaSolver()
-            };
+            VkApi = new Va(services);
 
             ImageCache.Init();
 
@@ -65,7 +67,7 @@ namespace VkDiskCore
 
         public static string SolveCaptcha(Bitmap captcha)
         {
-            return CapchaSolver?.Invoke(captcha);
+            return CaptchaSolver?.Invoke(captcha);
         }
 
         private static void AddLogger(ServiceCollection services)
