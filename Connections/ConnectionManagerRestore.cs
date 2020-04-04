@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
 using VkDiskCore.Connections.Executors;
 using VkDiskCore.Connections.Util;
 using VkDiskCore.Utility;
@@ -37,42 +41,21 @@ namespace VkDiskCore.Connections
 
                     if (!info.IsVkd)
                     {
-                        var executor = new DownloadExecutor();
-                        executor.ProgressChanged += info.ProgressChangedHandler;
-                        info.LoadStop += () => { executor.Stop = true; };
-                        info.LoadState = LoadState.Loading;
-                        executor.Download(s, info.Src, info.TotalLoad);
-                        info.LoadState = LoadState.Finished;
+                        DownloadPartOrFile(new DownloadExecutor(), info, s, info.Src, totalLoadOffset: info.TotalLoad, onlyOne: true);
                         return;
                     }
 
-                    // todo remove this code duplication
                     // load links to file parts
-                    var links = new List<string>();
-                    using (var ms = new MemoryStream())
-                    {
-                        new DownloadExecutor().Download(ms, info.Src);
-                        ms.Position = 0;
-                        using (var sr = new StreamReader(ms))
-                            while (!sr.EndOfStream)
-                                links.Add(sr.ReadLine());
-                    }
+                    var links = GetVkdHeader(info.Src).ToList();
 
                     var part = (int)(info.TotalLoad / PartSize);
 
-                    var vkdEx = new DownloadExecutor();
-                    vkdEx.ProgressChanged += info.ProgressChangedHandler;
-                    info.LoadStop += () => { vkdEx.Stop = true; };
                     info.LoadState = LoadState.Loading;
-                    vkdEx.Download(s, links[part], info.TotalLoad % PartSize);
+
+                    DownloadPartOrFile(new DownloadExecutor(), info, s, links[part], part * PartSize, info.TotalLoad % PartSize);
 
                     for (var i = part + 1; i < links.Count; i++)
-                    {
-                        vkdEx = new DownloadExecutor();
-                        vkdEx.ProgressChanged += info.ProgressChangedHandler;
-                        info.LoadStop += () => { vkdEx.Stop = true; };
-                        vkdEx.Download(s, links[i]);
-                    }
+                        DownloadPartOrFile(new DownloadExecutor(), info, s, links[i], i * PartSize);
 
                     File.Move(file, $"{info.Folder}\\{info.Name}");
                     info.LoadState = LoadState.Finished;
@@ -81,6 +64,58 @@ namespace VkDiskCore.Connections
             catch (Exception)
             {
                 info.LoadState = LoadState.Error;
+            }
+        }
+
+        public static void RestoreUploadConnection(UploadInfo info)
+        {
+            if (!info.IsVkd)
+            {
+                Task.Factory.StartNew(() => Upload(info.Path));
+                return;
+            }
+
+            info.LoadState = LoadState.Starting;
+
+            try
+            {
+                if (info.Links.Count * PartSize < info.TotalSize)
+                    using (var stream = File.OpenRead(info.Path))
+                    {
+                        info.TotalLoad = info.Links.Count * PartSize;
+                        stream.Position = info.TotalLoad;
+                        info.LoadState = LoadState.Loading;
+
+                        var executor = new UploadExecutor();
+                        executor.ProgressChanged += info.ProgressChangedHandler;
+                        info.LoadStop += () => { executor.Stop = true; };
+
+                        while (stream.Position < stream.Length)
+                        {
+                            var partSize = stream.Position + PartSize > stream.Length
+                                               ? stream.Length - stream.Position
+                                               : PartSize;
+
+                            var link = executor.Upload(
+                                stream,
+                                $"{info.Name.WithNoExtensions()}.{info.Links.Count}.vkdpart",
+                                partSize);
+
+                            info.Links.Add(link);
+                        }
+                    }
+
+                var header = string.Join(Environment.NewLine, info.Links);
+
+                using (var ms = new MemoryStream(Encoding.Default.GetBytes(header)))
+                    new UploadExecutor().Upload(ms, $"{info.Name}.vkd", ms.Length);
+
+                info.LoadState = LoadState.Finished;
+            }
+            catch
+            {
+                info.LoadState = LoadState.Error;
+                Task.Factory.StartNew(() => RestoreUploadConnection(info));
             }
         }
     }

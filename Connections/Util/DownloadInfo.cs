@@ -5,15 +5,15 @@
     /// </summary>
     public class DownloadInfo : BaseLoadInfo
     {
-        private string _folder;
-        private string _src;
+        private string folder;
+        private string src;
 
-        private bool _isVkd;
+        private bool isVkd;
 
         public DownloadInfo(string src, string folder)
         {
-            _src = src;
-            _folder = folder;
+            this.src = src;
+            this.folder = folder;
         }
 
         /// <summary>
@@ -21,8 +21,8 @@
         /// </summary>
         public string Folder
         {
-            get => _folder;
-            set => SetField(ref _folder, value);
+            get => folder;
+            set => SetField(ref folder, value);
         }
 
         /// <summary>
@@ -30,14 +30,14 @@
         /// </summary>
         public string Src
         {
-            get => _src;
-            set => SetField(ref _src, value);
+            get => src;
+            set => SetField(ref src, value);
         }
 
         public bool IsVkd
         {
-            get => _isVkd;
-            set => SetField(ref _isVkd, value);
+            get => isVkd;
+            set => SetField(ref isVkd, value);
         }
     }
 }

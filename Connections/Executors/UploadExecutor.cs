@@ -5,13 +5,14 @@
  * Refactored 08.05.2019
  */
 
-using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Text;
+
+using Newtonsoft.Json.Linq;
+
 using VkNet.Model.Attachments;
 
 namespace VkDiskCore.Connections.Executors
@@ -22,9 +23,10 @@ namespace VkDiskCore.Connections.Executors
         public const int Mb = Kb * 1024;  // megabyte
 
         public delegate void ProgressChangedHandler(long downloadedSize, long timeMilliSeconds);
+
         public event ProgressChangedHandler ProgressChanged;
 
-        public bool Stop;
+        public bool Stop { get; set; }
 
         public string Upload(Stream from, string name, long size)
         {
