@@ -1,9 +1,6 @@
-﻿using System;
+﻿using System.Drawing;
 
 using Microsoft.Extensions.DependencyInjection;
-using System.Drawing;
-using System.Threading.Tasks;
-
 using Microsoft.Extensions.Logging;
 
 using VkDiskCore.Categories;
@@ -18,21 +15,21 @@ using Va = VkNet.VkApi;
 
 namespace VkDiskCore
 {
-    using VkNet.Abstractions.Core;
-    using VkNet.Utils;
     using VkNet.Utils.AntiCaptcha;
 
     public static class VkDisk
     {
-        public static ulong ApplicationId;
-
-        public static St Settings;
-
         public delegate string CaptchaSolverDelegate(Bitmap captcha);
+
+        public static ulong ApplicationId { get; set; }
+
+        public static St Settings { get; set; }
 
         public static CaptchaSolverDelegate CaptchaSolver { get; set; }
 
         public static DocumentCategory Document { get; } = new DocumentCategory();
+
+        public static Settings VkDiskSettings { get; } = new Settings { AutoRetryUpload = true };
 
         public static Va VkApi { get; private set; }
 

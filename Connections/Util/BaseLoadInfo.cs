@@ -10,32 +10,35 @@ namespace VkDiskCore.Connections.Util
         protected readonly object Locker = new object();
         protected readonly List<long> Speeds;
 
-        private LoadState _loadState;
+        private LoadState loadState;
 
-        private int _id;
+        private int id;
 
-        private long _totalLoad;
-        private long _totalSize;
+        private long totalLoad;
+        private long totalSize;
 
-        private string _name;
-        private string _ext;
+        private string name;
+        private string ext;
 
-        public delegate void LoadStopHandler();
-        public event LoadStopHandler LoadStop;
+        private bool isVkd;
 
         public BaseLoadInfo()
         {
             Speeds = new List<long>(SpeedsCount);
-            _loadState = LoadState.Starting;
+            loadState = LoadState.Starting;
         }
+
+        public delegate void LoadStopHandler();
+
+        public event LoadStopHandler LoadStop;
 
         /// <summary>
         /// Количество загруженных байт
         /// </summary>
         public long TotalLoad
         {
-            get => _totalLoad;
-            set => SetField(ref _totalLoad, value);
+            get => totalLoad;
+            set => SetField(ref totalLoad, value);
         }
 
         /// <summary>
@@ -43,8 +46,8 @@ namespace VkDiskCore.Connections.Util
         /// </summary>
         public long TotalSize
         {
-            get => _totalSize;
-            set => SetField(ref _totalSize, value);
+            get => totalSize;
+            set => SetField(ref totalSize, value);
         }
 
         /// <summary>
@@ -52,8 +55,8 @@ namespace VkDiskCore.Connections.Util
         /// </summary>
         public int Id
         {
-            get => _id;
-            set => SetField(ref _id, value);
+            get => id;
+            set => SetField(ref id, value);
         }
 
         /// <summary>
@@ -76,11 +79,11 @@ namespace VkDiskCore.Connections.Util
         /// </summary>
         public string Name
         {
-            get => _name;
+            get => name;
             set
             {
-                SetField(ref _name, value);
-                Ext = _name.Extension();
+                SetField(ref name, value);
+                Ext = name.Extension();
             }
         }
 
@@ -89,8 +92,8 @@ namespace VkDiskCore.Connections.Util
         /// </summary>
         public string Ext
         {
-            get => _ext;
-            set => SetField(ref _ext, value);
+            get => ext;
+            set => SetField(ref ext, value);
         }
 
         /// <summary>
@@ -98,8 +101,17 @@ namespace VkDiskCore.Connections.Util
         /// </summary>
         public LoadState LoadState
         {
-            get => _loadState;
-            set => SetField(ref _loadState, value);
+            get => loadState;
+            set => SetField(ref loadState, value);
+        }
+
+        /// <summary>
+        /// Является ли файл файлом вкд
+        /// </summary>
+        public bool IsVkd
+        {
+            get => isVkd;
+            set => SetField(ref isVkd, value);
         }
 
         public void Stop()
@@ -107,7 +119,7 @@ namespace VkDiskCore.Connections.Util
             LoadStop?.Invoke();
         }
 
-        public void ProgressChangedHandler(long byteProgress, long ellapsedMs)
+        public void ProgressChangedHandler(long byteProgress, long elapsedMs)
         {
             lock (Locker)
                 if (Speeds.Count >= SpeedsCount)
@@ -118,7 +130,7 @@ namespace VkDiskCore.Connections.Util
             TotalLoad = byteProgress;
 
             lock (Locker)
-                Speeds.Add(BytesPerSecond(bytes, ellapsedMs));
+                Speeds.Add(BytesPerSecond(bytes, elapsedMs));
 
             NotifyPropertyChanged($"BPS");
         }
