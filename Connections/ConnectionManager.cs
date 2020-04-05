@@ -140,7 +140,9 @@ namespace VkDiskCore.Connections
                     catch (Exception)
                     {
                         upload.LoadState = LoadState.Error;
-                        Task.Factory.StartNew(() => Upload(path));
+
+                        if (VkDisk.VkDiskSettings.AutoRetryUpload)
+                            Task.Factory.StartNew(() => Upload(path));
                     }
                 }
 
@@ -175,7 +177,8 @@ namespace VkDiskCore.Connections
                 catch
                 {
                     upload.LoadState = LoadState.Error;
-                    Task.Factory.StartNew(() => RestoreUploadConnection(upload));
+                    if (VkDisk.VkDiskSettings.AutoRetryUpload)
+                        Task.Factory.StartNew(() => RestoreUploadConnection(upload));
                 }
             }
         }
