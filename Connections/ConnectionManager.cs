@@ -12,6 +12,10 @@ using System.Threading.Tasks;
 using VkDiskCore.Connections.Executors;
 using VkDiskCore.Connections.Util;
 using VkDiskCore.Utility;
+
+using VkNet.Model;
+using VkNet.Model.RequestParams.Stories;
+
 using Exception = System.Exception;
 
 namespace VkDiskCore.Connections
@@ -21,14 +25,6 @@ namespace VkDiskCore.Connections
     /// </summary>
     public static partial class ConnectionManager
     {
-        #region Constants
-
-        public static int PartSize = 198 * 1024 * 1024; // 198 Mb
-        public static int MB = 1024 * 1024; // 1MB
-
-        #endregion
-
-
         #region Fields
 
         private static readonly List<DownloadInfo> Downloads = new List<DownloadInfo>();
@@ -43,6 +39,18 @@ namespace VkDiskCore.Connections
         public static event DownloadUpdatedHandler DownloadItemCollectionUpdated;
 
         public static event UploadUpdatedHanlder UploadItemCollectionUpdated;
+
+        #endregion
+
+        #region Constants
+
+        public static int PartSize => 198 * 1024 * 1024; // 198 Mb
+
+        public static int MB => 1024 * 1024; // 1MB
+
+        public static List<DownloadInfo> GetDownloads => Downloads;
+
+        public static List<UploadInfo> GetUploads => Uploads;
 
         #endregion
 
