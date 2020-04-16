@@ -44,7 +44,7 @@ namespace VkDiskCore.Connections
 
         #region Constants
 
-        public static int PartSize => 186 * 1024 * 1024;
+        public static int PartSize => 198 * 1024 * 1024; //198 mb
 
         public static int MB => 1024 * 1024; // 1MB
 
