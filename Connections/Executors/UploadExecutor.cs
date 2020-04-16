@@ -43,7 +43,7 @@ namespace VkDiskCore.Connections.Executors
                 s.Write(h, 0, h.Length);
 
                 var w = new Stopwatch();
-                var b = new byte[Kb];
+                var b = new byte[size > 40 ? Mb : Kb];
                 var total = 0;
                 int cur;
 
