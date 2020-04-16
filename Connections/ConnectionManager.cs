@@ -44,7 +44,7 @@ namespace VkDiskCore.Connections
 
         #region Constants
 
-        public static int PartSize => 198 * 1024 * 1024; // 198 Mb
+        public static int PartSize => 186 * 1024 * 1024;
 
         public static int MB => 1024 * 1024; // 1MB
 
@@ -128,7 +128,6 @@ namespace VkDiskCore.Connections
             var vkd = !FileAllowed(upload.Ext);
 
             var executor = new UploadExecutor();
-            executor.ProgressChanged += upload.ProgressChangedHandler;
             upload.LoadStop += () => { executor.Stop = true; };
 
             using (var stream = File.OpenRead(path))
@@ -141,6 +140,7 @@ namespace VkDiskCore.Connections
                 {
                     try
                     {
+                        executor.ProgressChanged += upload.ProgressChangedHandler;
                         executor.Upload(stream, name, stream.Length);
                         upload.LoadState = LoadState.Finished;
                         return;
@@ -157,6 +157,11 @@ namespace VkDiskCore.Connections
                 try
                 {
                     upload.IsVkd = true;
+
+                    executor.ProgressChanged += (downloadedSize, time) =>
+                        {
+                            upload.ProgressChangedHandler(downloadedSize + (PartSize * upload.Links.Count), time);
+                        };
 
                     while (stream.Position < stream.Length)
                     {
