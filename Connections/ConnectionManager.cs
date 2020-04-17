@@ -190,7 +190,7 @@ namespace VkDiskCore.Connections
 
                     upload.LoadState = LoadState.Finished;
                 }
-                catch
+                catch (Exception e)
                 {
                     upload.LoadState = LoadState.Error;
 
