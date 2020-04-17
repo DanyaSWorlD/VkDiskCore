@@ -29,7 +29,7 @@ namespace VkDiskCore
 
         public static DocumentCategory Document { get; } = new DocumentCategory();
 
-        public static Settings VkDiskSettings { get; } = new Settings { AutoRetryUpload = true };
+        public static Settings VkDiskSettings { get; } = new Settings { AutoRetryUpload = true, AutoRetryMaxCount = 5 };
 
         public static Va VkApi { get; private set; }
 

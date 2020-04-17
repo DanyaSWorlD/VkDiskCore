@@ -8,8 +8,6 @@
         private string folder;
         private string src;
 
-        private bool isVkd;
-
         public DownloadInfo(string src, string folder)
         {
             this.src = src;
@@ -32,12 +30,6 @@
         {
             get => src;
             set => SetField(ref src, value);
-        }
-
-        public bool IsVkd
-        {
-            get => isVkd;
-            set => SetField(ref isVkd, value);
         }
     }
 }

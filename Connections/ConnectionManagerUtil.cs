@@ -160,7 +160,7 @@ namespace VkDiskCore.Connections
         /// <param name="info"> Сведения о файле </param>
         /// <param name="s"> Stream (файловый поток записи) </param>
         /// <param name="src"> Link to source | ссылка на источник</param>
-        /// <param name="progressOffset"> Величина задающая отступ прогресса (для исполнителя каждый кусочек начинается с нуля, что не верно когда кусочков несколько</param>
+        /// <param name="progressOffset"> Величина задающая отступ прогресса (для исполнителя каждый кусочек начинается с нуля, что не верно, когда кусочков несколько)</param>
         /// <param name="totalLoadOffset"> Размер уже загруженного файла для его дозагрузки </param>
         /// <param name="onlyOne"> Только один кусочек(файл). Если true сообщается о начале и завершении загрузки файла </param>
         /// <returns></returns>
@@ -178,7 +178,7 @@ namespace VkDiskCore.Connections
                 info.LoadState = LoadState.Loading;
 
             info.LoadStop += () => { executor.Stop = true; };
-            var val = executor.Download(s, src);
+            var val = executor.Download(s, src, totalLoadOffset);
 
             if (onlyOne)
                 info.LoadState = LoadState.Finished;

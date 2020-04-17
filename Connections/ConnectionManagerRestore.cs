@@ -71,8 +71,12 @@ namespace VkDiskCore.Connections
         /// Continue failed upload
         /// </summary>
         /// <param name="info"></param>
-        public static void RestoreUploadConnection(UploadInfo info)
+        public static void RestoreUploadConnection(UploadInfo info, int restoreAttempts = 0)
         {
+
+            if (restoreAttempts >= VkDisk.VkDiskSettings.AutoRetryMaxCount)
+                return;
+
             if (!info.IsVkd)
             {
                 Task.Factory.StartNew(() => Upload(info.Path));
@@ -120,7 +124,7 @@ namespace VkDiskCore.Connections
             {
                 info.LoadState = LoadState.Error;
                 if (VkDisk.VkDiskSettings.AutoRetryUpload)
-                    Task.Factory.StartNew(() => RestoreUploadConnection(info));
+                    Task.Factory.StartNew(() => RestoreUploadConnection(info, restoreAttempts++));
             }
         }
     }

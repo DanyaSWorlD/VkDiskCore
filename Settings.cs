@@ -12,12 +12,24 @@ namespace VkDiskCore
     {
         private bool autoRetryUpload;
 
+        private int autoRetryMaxCount;
+
         public bool AutoRetryUpload
         {
             get => autoRetryUpload;
             set
             {
                 autoRetryUpload = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        public int AutoRetryMaxCount
+        {
+            get => autoRetryMaxCount;
+            set
+            {
+                autoRetryMaxCount = value;
                 NotifyPropertyChanged();
             }
         }

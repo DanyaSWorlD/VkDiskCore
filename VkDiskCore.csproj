@@ -69,6 +69,7 @@
     <Compile Include="DataBase\DbImage.cs" />
     <Compile Include="DataBase\DbUser.cs" />
     <Compile Include="DataBase\Model\Document.cs" />
+    <Compile Include="Errors\FileUploadingException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="User.cs" />
@@ -108,6 +109,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

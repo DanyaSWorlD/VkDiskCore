@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 using VkDiskCore.Connections.Executors;
 using VkDiskCore.Connections.Util;
+using VkDiskCore.Errors;
 using VkDiskCore.Utility;
 
 using VkNet.Model;
@@ -145,12 +146,14 @@ namespace VkDiskCore.Connections
                         upload.LoadState = LoadState.Finished;
                         return;
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
                         upload.LoadState = LoadState.Error;
 
                         if (VkDisk.VkDiskSettings.AutoRetryUpload)
                             Task.Factory.StartNew(() => Upload(path));
+
+                        throw new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e);
                     }
                 }
 
@@ -190,8 +193,11 @@ namespace VkDiskCore.Connections
                 catch
                 {
                     upload.LoadState = LoadState.Error;
+
                     if (VkDisk.VkDiskSettings.AutoRetryUpload)
                         Task.Factory.StartNew(() => RestoreUploadConnection(upload));
+
+                    throw new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e);
                 }
             }
         }
