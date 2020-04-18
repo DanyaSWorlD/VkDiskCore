@@ -153,7 +153,7 @@ namespace VkDiskCore.Connections
                         if (VkDisk.VkDiskSettings.AutoRetryUpload)
                             Task.Factory.StartNew(() => Upload(path));
 
-                        throw new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e);
+                        VkDisk.HandleException(new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e));
                     }
                 }
 
@@ -197,7 +197,7 @@ namespace VkDiskCore.Connections
                     if (VkDisk.VkDiskSettings.AutoRetryUpload)
                         Task.Factory.StartNew(() => RestoreUploadConnection(upload));
 
-                    throw new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e);
+                    VkDisk.HandleException(new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e));
                 }
             }
         }
