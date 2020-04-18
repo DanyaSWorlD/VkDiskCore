@@ -13,6 +13,8 @@ using System.Text;
 
 using Newtonsoft.Json.Linq;
 
+using VkDiskCore.Utility;
+
 using VkNet.Model.Attachments;
 
 namespace VkDiskCore.Connections.Executors
@@ -62,7 +64,7 @@ namespace VkDiskCore.Connections.Executors
                     ProgressChanged?.Invoke(total, ms);
 
                     var newSize = (int)((100f / ms) * ms100);
-                    Console.WriteLine(newSize);
+                    Console.WriteLine(FileSize.ToString(newSize));
                     if (newSize < Kb) newSize = Kb;
 
                     b = new byte[newSize];
