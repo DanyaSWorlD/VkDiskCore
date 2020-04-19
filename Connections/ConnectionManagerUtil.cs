@@ -171,10 +171,8 @@ namespace VkDiskCore.Connections
             if (progressOffset == 0)
                 executor.ProgressChanged += info.ProgressChangedHandler;
             else
-                executor.ProgressChanged += (bytes, time) =>
-                    {
-                        info.ProgressChangedHandler(progressOffset + bytes, time);
-                    };
+                executor.ProgressChanged += (bytes, time)
+                    => info.ProgressChangedHandler(progressOffset + bytes, time);
 
             if (onlyOne)
                 info.LoadState = LoadState.Loading;
@@ -186,24 +184,6 @@ namespace VkDiskCore.Connections
                 info.LoadState = LoadState.Finished;
 
             return val;
-        }
-
-        private static bool UploadVkFile(UploadExecutor executor, UploadInfo uploadInfo, Stream s)
-        {
-            try
-            {
-                
-
-                return true;
-            }
-            catch (Exception e)
-            {
-                uploadInfo.LoadState = LoadState.Error;
-
-                VkDisk.HandleException(new FileUploadingException("При отправке файла произошла ошибка", e));
-
-                return false;
-            }
         }
 
         /// <summary>

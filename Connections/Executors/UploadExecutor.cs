@@ -2,7 +2,7 @@
  * Copyright © 2016 by DAQUGA studios
  * Author - Даниил Миренский
  * Created - 18.12.2016
- * Refactored 08.05.2019
+ * Refactored 18.04.2020
  */
 
 using System;
@@ -12,8 +12,6 @@ using System.Net;
 using System.Text;
 
 using Newtonsoft.Json.Linq;
-
-using VkDiskCore.Utility;
 
 using VkNet.Model.Attachments;
 
@@ -64,10 +62,9 @@ namespace VkDiskCore.Connections.Executors
                     ProgressChanged?.Invoke(total, ms);
 
                     var newSize = (int)((100f / ms) * ms100);
-                    Console.WriteLine(FileSize.ToString(newSize));
                     if (newSize < Kb) newSize = Kb;
-
-                    b = new byte[newSize];
+                    if (Math.Abs(b.Length - newSize) > 124)
+                        b = new byte[newSize];
 
                     ms100 = 0;
 
