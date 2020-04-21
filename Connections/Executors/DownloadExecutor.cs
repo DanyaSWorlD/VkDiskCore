@@ -26,6 +26,13 @@ namespace VkDiskCore.Connections.Executors
 
         public bool Stop { get; set; }
 
+        /// <summary>
+        /// Загружает файл из вк
+        /// </summary>
+        /// <param name="writeStream">Поток, в который будет записываться скачиваемый файл</param>
+        /// <param name="url">Адрес файла</param>
+        /// <param name="readStreamStart">Откуда начать считывать поток</param>
+        /// <returns>Количество загруженных байт</returns>
         public long Download(Stream writeStream, string url, long readStreamStart = 0)
         {
             using (var client = new HttpClient())

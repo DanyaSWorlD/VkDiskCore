@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,6 @@ using VkNet.AudioBypassService.Extensions;
 using VkNet.NLog.Extensions.Logging;
 using VkNet.NLog.Extensions.Logging.Extensions;
 
-using St = VkNet.Enums.Filters.Settings;
 using Va = VkNet.VkApi;
 
 namespace VkDiskCore
@@ -21,9 +21,11 @@ namespace VkDiskCore
     {
         public delegate string CaptchaSolverDelegate(Bitmap captcha);
 
-        public static ulong ApplicationId { get; set; }
+        public delegate void ExceptionHandled(Exception e);
 
-        public static St Settings { get; set; }
+        public static event ExceptionHandled OnExceptionThrown;
+
+        public static ulong ApplicationId { get; set; }
 
         public static CaptchaSolverDelegate CaptchaSolver { get; set; }
 
@@ -62,10 +64,9 @@ namespace VkDiskCore
             NLog.LogManager.Shutdown();
         }
 
-        public static string SolveCaptcha(Bitmap captcha)
-        {
-            return CaptchaSolver?.Invoke(captcha);
-        }
+        public static string SolveCaptcha(Bitmap captcha) => CaptchaSolver?.Invoke(captcha);
+
+        public static void HandleException(Exception e) => OnExceptionThrown?.Invoke(e);
 
         private static void AddLogger(ServiceCollection services)
         {

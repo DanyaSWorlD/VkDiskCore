@@ -2,7 +2,7 @@
  * Copyright © 2016 by DAQUGA studios
  * Author - Даниил Миренский
  * Created - 18.12.2016
- * Refactored 08.05.2019
+ * Refactored 18.04.2020
  */
 
 using System;
@@ -43,8 +43,9 @@ namespace VkDiskCore.Connections.Executors
                 s.Write(h, 0, h.Length);
 
                 var w = new Stopwatch();
-                var b = new byte[size / Mb > 40 ? Mb : Kb];
+                var b = new byte[Kb];
                 var total = 0;
+                var ms100 = 0;
                 int cur;
 
                 w.Start();
@@ -52,12 +53,21 @@ namespace VkDiskCore.Connections.Executors
                 {
                     s.Write(b, 0, cur);
                     total += cur;
+                    ms100 += cur;
 
                     var ms = w.ElapsedMilliseconds;
 
                     if (ms <= 100) continue;
 
                     ProgressChanged?.Invoke(total, ms);
+
+                    var newSize = (int)((100f / ms) * ms100);
+                    if (newSize < Kb) newSize = Kb;
+                    if (Math.Abs(b.Length - newSize) > 124)
+                        b = new byte[newSize];
+
+                    ms100 = 0;
+
                     w.Restart();
 
                     if (Stop)

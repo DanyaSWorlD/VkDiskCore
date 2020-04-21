@@ -121,83 +121,74 @@ namespace VkDiskCore.Connections
         public static void Upload(string path)
         {
             var name = path.Split('\\').Last();
-
-            var upload = new UploadInfo(path, name);
-
-            AddToUploads(upload);
-
-            var vkd = !FileAllowed(upload.Ext);
+            var uploadInfo = new UploadInfo(path, name);
+            AddToUploads(uploadInfo);
 
             var executor = new UploadExecutor();
-            upload.LoadStop += () => { executor.Stop = true; };
+
+            uploadInfo.LoadState = LoadState.Starting;
+            uploadInfo.LoadStop += () => { executor.Stop = true; };
 
             using (var stream = File.OpenRead(path))
             {
-                upload.TotalSize = stream.Length;
-                upload.LoadState = LoadState.Loading;
+                uploadInfo.TotalSize = stream.Length;
+                uploadInfo.IsVkd = !FileAllowed(uploadInfo.Ext) || uploadInfo.TotalSize > PartSize;
 
-                vkd = vkd || upload.TotalSize > PartSize;
-                if (!vkd)
+                if (uploadInfo.IsVkd)
+                    executor.ProgressChanged += (downloadedSize, time)
+                        => uploadInfo.ProgressChangedHandler(downloadedSize + (PartSize * uploadInfo.Links.Count), time);
+                else
+                    executor.ProgressChanged += uploadInfo.ProgressChangedHandler;
+
+                var retryCount = 0;
+                while (stream.Position < stream.Length || retryCount < VkDisk.VkDiskSettings.AutoRetryMaxCount)
                 {
                     try
                     {
-                        executor.ProgressChanged += upload.ProgressChangedHandler;
-                        executor.Upload(stream, name, stream.Length);
-                        upload.LoadState = LoadState.Finished;
-                        return;
-                    }
-                    catch (Exception e)
-                    {
-                        upload.LoadState = LoadState.Error;
+                        uploadInfo.LoadState = LoadState.Loading;
 
-                        if (VkDisk.VkDiskSettings.AutoRetryUpload)
-                            Task.Factory.StartNew(() => Upload(path));
-
-                        throw new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e);
-                    }
-                }
-
-                try
-                {
-                    upload.IsVkd = true;
-
-                    executor.ProgressChanged += (downloadedSize, time) =>
-                        {
-                            upload.ProgressChangedHandler(downloadedSize + (PartSize * upload.Links.Count), time);
-                        };
-
-                    while (stream.Position < stream.Length)
-                    {
                         var partSize = stream.Position + PartSize > stream.Length
                                            ? stream.Length - stream.Position
                                            : PartSize;
 
-                        var link = executor.Upload(
-                            stream,
-                            $"{name.WithNoExtensions()}.{upload.Links.Count}.vkdpart",
-                            partSize);
+                        var localName = uploadInfo.IsVkd
+                                            ? NameWithNumber(
+                                                $"{uploadInfo.Name.WithNoExtensions()}.vkdpart",
+                                                uploadInfo.Links.Count)
+                                            : uploadInfo.Name;
 
-                        upload.Links.Add(link);
+                        var link = executor.Upload(stream, localName, partSize);
+
+                        if (!uploadInfo.IsVkd)
+                        {
+                            uploadInfo.LoadState = LoadState.Finished;
+                            return;
+                        }
+
+                        uploadInfo.Links.Add(link);
+                    }
+                    catch (Exception e)
+                    {
+                        uploadInfo.LoadState = LoadState.Error;
+
+                        VkDisk.HandleException(new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e));
+
+                        var uploadPosition = uploadInfo.Links.Count * (long)PartSize;
+                        if (uploadPosition != stream.Position)
+                            stream.Position = uploadPosition;
+
+                        retryCount++;
                     }
 
                     var sb = new StringBuilder();
 
-                    foreach (var url in upload.Links)
+                    foreach (var url in uploadInfo.Links)
                         sb.Append(url).Append(Environment.NewLine);
 
                     using (var ms = new MemoryStream(Encoding.Default.GetBytes(sb.ToString())))
                         new UploadExecutor().Upload(ms, $"{name}.vkd", ms.Length);
 
-                    upload.LoadState = LoadState.Finished;
-                }
-                catch (Exception e)
-                {
-                    upload.LoadState = LoadState.Error;
-
-                    if (VkDisk.VkDiskSettings.AutoRetryUpload)
-                        Task.Factory.StartNew(() => RestoreUploadConnection(upload));
-
-                    throw new FileUploadingException("Во время отправки файла произошла одна или несколько ошибок", e);
+                    uploadInfo.LoadState = LoadState.Finished;
                 }
             }
         }

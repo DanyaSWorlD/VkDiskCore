@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using VkDiskCore.Connections.Executors;
 using VkDiskCore.Connections.Util;
+using VkDiskCore.Errors;
 using VkDiskCore.Utility;
 
 namespace VkDiskCore.Connections
@@ -159,7 +161,7 @@ namespace VkDiskCore.Connections
         /// <param name="executor"> Исполнитель </param>
         /// <param name="info"> Сведения о файле </param>
         /// <param name="s"> Stream (файловый поток записи) </param>
-        /// <param name="src"> Link to source | ссылка на источник</param>
+        /// <param name="src"> Link to source | ссылка на источник файла </param>
         /// <param name="progressOffset"> Величина задающая отступ прогресса (для исполнителя каждый кусочек начинается с нуля, что не верно, когда кусочков несколько)</param>
         /// <param name="totalLoadOffset"> Размер уже загруженного файла для его дозагрузки </param>
         /// <param name="onlyOne"> Только один кусочек(файл). Если true сообщается о начале и завершении загрузки файла </param>
@@ -169,10 +171,8 @@ namespace VkDiskCore.Connections
             if (progressOffset == 0)
                 executor.ProgressChanged += info.ProgressChangedHandler;
             else
-                executor.ProgressChanged += (bytes, time) =>
-                    {
-                        info.ProgressChangedHandler(progressOffset + bytes, time);
-                    };
+                executor.ProgressChanged += (bytes, time)
+                    => info.ProgressChangedHandler(progressOffset + bytes, time);
 
             if (onlyOne)
                 info.LoadState = LoadState.Loading;
