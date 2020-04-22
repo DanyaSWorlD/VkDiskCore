@@ -39,21 +39,23 @@ namespace VkDiskCore
 
         public static string ImageCacheDir { get; set; } = "imageCache/";
 
-        public static void Init(int appId)
+        public static void Init(int appId, bool logger = false)
+        {
+            ApplicationId = (ulong)appId;
+
+            var services = new ServiceCollection();
+            AddDefaultServices(services, logger);
+
+            VkApi = new Va(services);
+        }
+
+        public static void Init(bool logger = false)
         {
             var services = new ServiceCollection();
             services.AddAudioBypass();
-            services.AddSingleton<ICaptchaSolver, VkNetCaptchaSolver>();
+            AddDefaultServices(services, logger);
 
-            // uncomment, if need logging:
-            // AddLogger(services);
-            // --------------------
-            // init vk api
             VkApi = new Va(services);
-
-            ImageCache.Init();
-
-            ApplicationId = (ulong)appId;
         }
 
         public static void Stop()
@@ -67,6 +69,14 @@ namespace VkDiskCore
         public static string SolveCaptcha(Bitmap captcha) => CaptchaSolver?.Invoke(captcha);
 
         public static void HandleException(Exception e) => OnExceptionThrown?.Invoke(e);
+
+        private static void AddDefaultServices(ServiceCollection services, bool addLogger)
+        {
+            services.AddSingleton<ICaptchaSolver, VkNetCaptchaSolver>();
+
+            if (addLogger)
+                AddLogger(services);
+        }
 
         private static void AddLogger(ServiceCollection services)
         {
