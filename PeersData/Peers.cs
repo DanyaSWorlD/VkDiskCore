@@ -114,7 +114,7 @@ namespace VkDiskCore.PeersData
             Add(o.Profiles);
         }
 
-        public static string GetTitle(long id)
+        public static string GetTitle(long? id)
         {
             return _peers.FirstOrDefault(o => o.Id == id)?.Title;
         }
