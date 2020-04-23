@@ -4,143 +4,176 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
+
 using VkDiskCore.DataBase;
 using VkDiskCore.PeersData;
 
 namespace VkDiskCore.Utility
 {
+
     public static class ImageCache
     {
-        private static bool _inited;
-        private static bool _dataAdded;
+        private static readonly List<DbImage> toLoad;
+        private static readonly object locker;
 
-        private static List<long> _itemsToLoad;
+        private static bool isInitiated;
+        private static bool isRunning;
 
-        public delegate void ImageLoadedHandler(long id);
+        static ImageCache()
+        {
+            toLoad = new List<DbImage>();
+            locker = new object();
+        }
+
+        public delegate void ImageLoadedHandler(DbImage image);
+
         public static event ImageLoadedHandler ImageLoaded;
 
         public static void Init()
         {
-            if (_inited) return;
-            _inited = true;
-
-            _itemsToLoad = new List<long>();
+            lock (locker)
+            {
+                if (isInitiated) return;
+                isInitiated = true;
+            }
 
             Peers.CollectionChanged += CollectionUpdatedHandler;
 
             if (!Directory.Exists(VkDisk.ImageCacheDir))
                 Directory.CreateDirectory(VkDisk.ImageCacheDir);
 
-            Task.Factory.StartNew(DoLoad);
+            Task.Factory.StartNew(Clean);
         }
 
         public static void Stop()
         {
-            _inited = false;
+            isInitiated = false;
         }
 
         public static Bitmap GetImage(string link)
         {
-            var collection = MainDb.GetCollection<DbImage>();
-
-            var item = collection.FindOne(o => o.Link == link);
-            if (item == null) return null;
-
-            item.AccesDate = DateTime.Now;
-
-            collection.Update(item);
-
-            var path = VkDisk.ImageCacheDir + item.Name;
-            return new Bitmap(path);
+            if (string.IsNullOrEmpty(link)) return null;
+            var image = new DbImage { Link = link };
+            return GetImage(image);
         }
 
         public static Bitmap GetImage(long peerId)
         {
-            var collection = MainDb.GetCollection<DbImage>();
+            var image = new DbImage { PeerId = peerId };
+            return GetImage(image);
+        }
 
-            var item = collection.FindOne(o => o.PeerId == peerId);
-            if (item == null) return null;
+        private static Bitmap GetImage(DbImage image)
+        {
+            var dbImage = GetFromDatabase(image);
 
-            item.AccesDate = DateTime.Now;
+            if (dbImage == null)
+            {
+                AddToDownload(image);
+                return null;
+            }
 
-            collection.Update(item);
+            UpdateLastAccessDate(dbImage);
 
-            var path = VkDisk.ImageCacheDir + item.Name;
-            return new Bitmap(path);
+            return DbImageToBitmap(dbImage);
+        }
+
+        private static void AddToDownload(DbImage image)
+        {
+            toLoad.Add(image);
+
+            if (!isRunning)
+                Run();
+        }
+
+        private static DbImage GetFromDatabase(DbImage image)
+        {
+            var connection = MainDb.GetCollection<DbImage>();
+
+            if (string.IsNullOrEmpty(image.Link))
+                return connection.FindOne(o => o.PeerId == image.PeerId);
+
+            if (image.PeerId == null)
+                return connection.FindOne(o => o.Link == image.Link);
+
+            return connection.FindOne(o => o.Link == image.Link && o.Id == image.Id);
+        }
+
+        private static Bitmap DbImageToBitmap(DbImage image) => new Bitmap(GetImageCachePath(image));
+
+        private static void LoadImage(DbImage image)
+        {
+            using (var client = new HttpClient())
+            {
+                var resp = client.GetAsync(image.Link).Result;
+                var bitmap = (Bitmap)Image.FromStream(resp.Content.ReadAsStreamAsync().Result);
+                bitmap.Save(GetImageCachePath(image));
+            }
+        }
+
+        private static void UpdateLastAccessDate(DbImage image)
+        {
+            image.AccesDate = DateTime.Now;
+            MainDb.GetDb.GetCollection<DbImage>().Update(image);
         }
 
         private static void CollectionUpdatedHandler(IEnumerable<long> peers)
         {
             foreach (var peer in peers)
-                _itemsToLoad.Add(peer);
-
-            _dataAdded = true;
+                AddToDownload(new DbImage { PeerId = peer });
         }
 
-        private static void DoLoad()
+        private static void Clean()
         {
-            using (var db = MainDb.GetDb)
+            var startCollection = MainDb.GetCollection<DbImage>();
+
+            var toRemove = startCollection.FindAll().Where(item => item.AccesDate.AddDays(7) < DateTime.Now).ToList();
+
+            foreach (var image in toRemove)
             {
-                var startCollection = db.GetCollection<DbImage>();
-
-                var toRemove = startCollection.FindAll().Where(item => item.AccesDate.AddDays(7) < DateTime.Now).ToList();
-                foreach (var dbImage in toRemove)
-                    startCollection.Delete(dbImage.Id);
-
-                startCollection = null;
-                toRemove = null;
-            }
-
-            while (_inited)
-            {
-                if (_itemsToLoad.Count == 0)
-                {
-                    while (!_dataAdded)
-                        Thread.Sleep(1000);
-
-                    _dataAdded = false;
-                }
-                else
-                {
-                    var item = _itemsToLoad[0];
-                    _itemsToLoad.RemoveAt(0);
-
-                    using (var db = MainDb.GetDb)
-                    {
-                        var collection = db.GetCollection<DbImage>();
-
-                        if (collection.Exists(o => o.PeerId == item)) continue;
-
-                        var link = Peers.GetImageLink(item);
-                        if (link == null) continue;
-
-                        if (collection.FindOne(o => o.Link == link) != null) continue;
-
-                        var dbImage = new DbImage
-                        {
-                            AccesDate = DateTime.Now,
-                            Link = link,
-                            PeerId = item,
-                            Name = link.Split('?')[0].Split('/').Last()
-                        };
-
-                        using (var client = new HttpClient())
-                        {
-                            var resp = client.GetAsync(link).Result;
-                            var bitmap = (Bitmap)Image.FromStream(resp.Content.ReadAsStreamAsync().Result);
-                            bitmap.Save($"{VkDisk.ImageCacheDir}{dbImage.Name}");
-                        }
-
-                        collection.Insert(dbImage);
-                    }
-
-                    ImageLoaded?.Invoke(item);
-                }
-
-                Thread.Sleep(100);
+                File.Delete(GetImageCachePath(image));
+                startCollection.Delete(image.Id);
             }
         }
+
+        private static void Run()
+        {
+            while (isInitiated)
+            {
+                if (toLoad.Count == 0)
+                {
+                    isRunning = false;
+                    return;
+                }
+
+                isRunning = true;
+
+                var item = toLoad[0];
+                toLoad.Remove(item);
+
+                var collection = MainDb.GetDb.GetCollection<DbImage>();
+
+                if (collection.Exists(o => o.PeerId == item.PeerId)) continue;
+
+                if (string.IsNullOrEmpty(item.Link))
+                    item.Link = Peers.GetImageLink(item.PeerId ?? 0);
+
+                if (item.Link == null) continue;
+
+                if (collection.FindOne(o => o.Link == item.Link) != null) continue;
+
+                item.AccesDate = DateTime.Now;
+                item.Name = item.Link.Split('?')[0].Split('/').Last();
+
+                LoadImage(item);
+
+                collection.Insert(item);
+
+                ImageLoaded?.Invoke(item);
+            }
+        }
+
+        private static string GetImageCachePath(DbImage image) => $"{VkDisk.ImageCacheDir}{image.Name}";
     }
 }

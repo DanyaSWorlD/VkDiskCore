@@ -76,6 +76,8 @@ namespace VkDiskCore
 
             if (addLogger)
                 AddLogger(services);
+            
+            ImageCache.Init();
         }
 
         private static void AddLogger(ServiceCollection services)
