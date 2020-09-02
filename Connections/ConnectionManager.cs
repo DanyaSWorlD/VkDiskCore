@@ -179,17 +179,17 @@ namespace VkDiskCore.Connections
 
                         retryCount++;
                     }
-
-                    var sb = new StringBuilder();
-
-                    foreach (var url in uploadInfo.Links)
-                        sb.Append(url).Append(Environment.NewLine);
-
-                    using (var ms = new MemoryStream(Encoding.Default.GetBytes(sb.ToString())))
-                        new UploadExecutor().Upload(ms, $"{name}.vkd", ms.Length);
-
-                    uploadInfo.LoadState = LoadState.Finished;
                 }
+
+                var sb = new StringBuilder();
+
+                foreach (var url in uploadInfo.Links)
+                    sb.Append(url).Append(Environment.NewLine);
+
+                using (var ms = new MemoryStream(Encoding.Default.GetBytes(sb.ToString())))
+                    new UploadExecutor().Upload(ms, $"{name}.vkd", ms.Length);
+
+                uploadInfo.LoadState = LoadState.Finished;
             }
         }
     }
