@@ -3,8 +3,8 @@
 using VkDiskCore.Crypto;
 
 using VkNet;
+using VkNet.AudioBypassService;
 using VkNet.AudioBypassService.Exceptions;
-using VkNet.AudioBypassService.Utils;
 using VkNet.Exception;
 using VkNet.Model;
 using VkNet.Model.RequestParams;
@@ -35,7 +35,7 @@ namespace VkDiskCore.Auth
                         TwoFactorAuthorization = twoFactor
                     });
             }
-            catch (Exception e) when (e is VkApiAuthorizationException || e is VkAuthException)
+            catch (Exception e) when (e is VkApiException || e is VkAuthException)
             {
                 // catch wrong login or password exception
                 return false;

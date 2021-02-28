@@ -108,7 +108,7 @@ namespace VkDiskCore.PeersData
             CollectionChanged?.Invoke(chatsArray.Select(o => o.Id));
         }
 
-        public static void Add(ConversationResultObject o)
+        public static void Add(ConversationResult o)
         {
             Add(o.Groups);
             Add(o.Profiles);
