@@ -28,7 +28,7 @@ namespace VkDiskCore.Connections.Executors
 
         public bool Stop { get; set; }
 
-        public string Upload(Stream from, string name, long size)
+        public Document Upload(Stream from, string name, long size)
         {
             var uploadUrl = VkDisk.VkApi.Docs.GetUploadServer().UploadUrl;
             var boundary = "----------" + DateTime.Now.Ticks.ToString("x");
@@ -90,7 +90,7 @@ namespace VkDiskCore.Connections.Executors
 
                     var file = (string)JObject.Parse(resp).SelectToken("file");
 
-                    return (VkDisk.VkApi.Docs.Save(file, name, null)[0].Instance as Document)?.Uri;
+                    return VkDisk.VkApi.Docs.Save(file, name, null)[0].Instance as Document;
                 }
             }
         }

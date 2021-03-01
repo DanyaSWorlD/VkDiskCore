@@ -7,21 +7,11 @@ namespace VkDiskCore.Connections.Util
     /// </summary>
     public class UploadInfo : BaseLoadInfo
     {
-        public UploadInfo()
-        {
-            Links = new List<string>();
-        }
-
-        public UploadInfo(string path, string name) : this()
+        public UploadInfo(string path, string name)
         {
             Path = path;
             Name = name;
         }
-
-        /// <summary>
-        /// Ссылки на загруженные части
-        /// </summary>
-        public List<string> Links { get; set; }
 
         /// <summary>
         /// путь к файлу

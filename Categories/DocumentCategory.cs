@@ -1,4 +1,5 @@
 ﻿using VkDiskCore.Connections;
+using VkDiskCore.Utility;
 
 namespace VkDiskCore.Categories
 {

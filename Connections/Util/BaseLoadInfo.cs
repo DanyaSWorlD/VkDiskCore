@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
+using VkDiskCore.Connections.Models;
 using VkDiskCore.Utility;
 
 namespace VkDiskCore.Connections.Util
@@ -22,15 +24,23 @@ namespace VkDiskCore.Connections.Util
 
         private bool isVkd;
 
+        private Vkd vkd; 
+
         public BaseLoadInfo()
         {
             Speeds = new List<long>(SpeedsCount);
             loadState = LoadState.Starting;
+            Links = new List<string>();
         }
 
         public delegate void LoadStopHandler();
 
         public event LoadStopHandler LoadStop;
+
+        /// <summary>
+        /// Ссылки на загруженные части
+        /// </summary>
+        public List<string> Links { get; set; }
 
         /// <summary>
         /// Количество загруженных байт
@@ -112,6 +122,15 @@ namespace VkDiskCore.Connections.Util
         {
             get => isVkd;
             set => SetField(ref isVkd, value);
+        }
+
+        /// <summary>
+        /// Информация о файле записанная на сервере вк
+        /// </summary>
+        public Vkd Vkd
+        {
+            get => vkd;
+            set => SetField(ref vkd, value);
         }
 
         public void Stop()

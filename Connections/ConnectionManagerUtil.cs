@@ -3,15 +3,53 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+
+using Newtonsoft.Json;
+
 using VkDiskCore.Connections.Executors;
+using VkDiskCore.Connections.Models;
 using VkDiskCore.Connections.Util;
 using VkDiskCore.Errors;
 using VkDiskCore.Utility;
+
+using VkNet.Model.Attachments;
 
 namespace VkDiskCore.Connections
 {
     public static partial class ConnectionManager
     {
+        /// <summary>
+        /// Закачка куска файла или Файла целиком, если он влазит в один кусок<br/>
+        /// [en] Loading part of file or whole file if it less than part (or not .vkd)
+        /// </summary>
+        /// <param name="executor"> Исполнитель </param>
+        /// <param name="info"> Сведения о файле </param>
+        /// <param name="s"> Stream (файловый поток записи) </param>
+        /// <param name="src"> Link to source | ссылка на источник файла </param>
+        /// <param name="progressOffset"> Величина задающая отступ прогресса (для исполнителя каждый кусочек начинается с нуля, что не верно, когда кусочков несколько)</param>
+        /// <param name="totalLoadOffset"> Размер уже загруженного файла для его дозагрузки </param>
+        /// <param name="onlyOne"> Только один кусочек(файл). Если true сообщается о начале и завершении загрузки файла </param>
+        /// <returns></returns>
+        public static long DownloadPartOrFile(DownloadExecutor executor, DownloadInfo info, Stream s, string src, long progressOffset = 0, long totalLoadOffset = 0, bool onlyOne = false)
+        {
+            if (progressOffset == 0)
+                executor.ProgressChanged += info.ProgressChangedHandler;
+            else
+                executor.ProgressChanged += (bytes, time)
+                    => info.ProgressChangedHandler(progressOffset + bytes, time);
+
+            if (onlyOne)
+                info.LoadState = LoadState.Loading;
+
+            info.LoadStop += () => { executor.Stop = true; };
+            var val = executor.Download(s, src, totalLoadOffset);
+
+            if (onlyOne)
+                info.LoadState = LoadState.Finished;
+
+            return val;
+        }
+
         /// <summary>
         /// Получает имя временного файла для загрузки.<br/>
         /// Если файл с таким имененм уже есть - удаляет.
@@ -155,54 +193,39 @@ namespace VkDiskCore.Connections
         }
 
         /// <summary>
-        /// Закачка куска файла или Файла целиком, если он влазит в один кусок<br/>
-        /// [en] Loading part of file or whole file if it less than part (or not .vkd)
-        /// </summary>
-        /// <param name="executor"> Исполнитель </param>
-        /// <param name="info"> Сведения о файле </param>
-        /// <param name="s"> Stream (файловый поток записи) </param>
-        /// <param name="src"> Link to source | ссылка на источник файла </param>
-        /// <param name="progressOffset"> Величина задающая отступ прогресса (для исполнителя каждый кусочек начинается с нуля, что не верно, когда кусочков несколько)</param>
-        /// <param name="totalLoadOffset"> Размер уже загруженного файла для его дозагрузки </param>
-        /// <param name="onlyOne"> Только один кусочек(файл). Если true сообщается о начале и завершении загрузки файла </param>
-        /// <returns></returns>
-        private static long DownloadPartOrFile(DownloadExecutor executor, DownloadInfo info, Stream s, string src, long progressOffset = 0, long totalLoadOffset = 0, bool onlyOne = false)
-        {
-            if (progressOffset == 0)
-                executor.ProgressChanged += info.ProgressChangedHandler;
-            else
-                executor.ProgressChanged += (bytes, time)
-                    => info.ProgressChangedHandler(progressOffset + bytes, time);
-
-            if (onlyOne)
-                info.LoadState = LoadState.Loading;
-
-            info.LoadStop += () => { executor.Stop = true; };
-            var val = executor.Download(s, src, totalLoadOffset);
-
-            if (onlyOne)
-                info.LoadState = LoadState.Finished;
-
-            return val;
-        }
-
-        /// <summary>
         /// Get content of vkd header as string ienumerable
         /// </summary>
         /// <param name="src"> source file </param>
         /// <returns> ienumerabled content of vkd header </returns>
-        private static IEnumerable<string> GetVkdHeader(string src)
+        private static DownloadInfo GetVkdHeader(DownloadInfo info)
         {
+            string content;
+
             using (var ms = new MemoryStream())
             {
-                new DownloadExecutor().Download(ms, src);
+                new DownloadExecutor().Download(ms, info.Src);
 
                 ms.Position = 0;
 
                 using (var sr = new StreamReader(ms))
-                    while (!sr.EndOfStream)
-                        yield return sr.ReadLine();
+                    content = sr.ReadToEnd();
             }
+
+            if (content.StartsWith("{"))
+            {
+                info.Vkd = JsonConvert.DeserializeObject<Vkd>(content);
+            }
+            else
+            {
+                info.Links = content.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+
+            return info;
+        }
+
+        private static IEnumerable<string> GetVkdLinks(DownloadInfo info)
+        {
+            return VkDisk.VkApi.Docs.GetById(info.Vkd.InnerVkds.Select(o => new Document { Id = o.Id, OwnerId = o.OwnerId })).Select(o => o.Uri);
         }
     }
 }

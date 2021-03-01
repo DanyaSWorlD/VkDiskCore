@@ -57,12 +57,14 @@
     <Compile Include="Connections\ConnectionManagerUtil.cs" />
     <Compile Include="Connections\Executors\DownloadExecutor.cs" />
     <Compile Include="Connections\Executors\UploadExecutor.cs" />
+    <Compile Include="Connections\Models\Vkd.cs" />
     <Compile Include="Connections\Util\BaseLoadInfo.cs" />
     <Compile Include="Connections\Util\DownloadInfo.cs" />
     <Compile Include="Connections\Util\LoadState.cs" />
     <Compile Include="Connections\Util\Stuff.cs" />
     <Compile Include="Connections\Util\UploadInfo.cs" />
     <Compile Include="Connections\Util\ViewModelBase.cs" />
+    <Compile Include="Connections\Util\VkdTypes.cs" />
     <Compile Include="DataBase\Actions\DocumentDbActions.cs" />
     <Compile Include="DataBase\DbProvider.cs" />
     <Compile Include="DataBase\MainDb.cs" />

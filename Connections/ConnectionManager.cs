@@ -9,12 +9,16 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
+using Newtonsoft.Json;
+
 using VkDiskCore.Connections.Executors;
+using VkDiskCore.Connections.Models;
 using VkDiskCore.Connections.Util;
 using VkDiskCore.Errors;
 using VkDiskCore.Utility;
 
 using VkNet.Model;
+using VkNet.Model.Attachments;
 using VkNet.Model.RequestParams.Stories;
 
 using Exception = System.Exception;
@@ -45,7 +49,7 @@ namespace VkDiskCore.Connections
 
         #region Constants
 
-        public static int PartSize => 198 * 1024 * 1024; //198 mb
+        public static long PartSize => (long)2 * 1024 * 1024 * 1024; //2 GB
 
         public static int MB => 1024 * 1024; // 1MB
 
@@ -94,9 +98,10 @@ namespace VkDiskCore.Connections
             }
             else
             {
-                var links = GetVkdHeader(download.Src).ToList();
+                download = GetVkdHeader(download);
+                download.TotalSize = download.Vkd.Size ?? GetFileSize(download.Links);
 
-                download.TotalSize = GetFileSize(links);
+                var links = download.Vkd == null ? download.Links : GetVkdLinks(download);
 
                 var partFile = PreparePartFile(download.Name, download.Folder);
 
@@ -122,12 +127,15 @@ namespace VkDiskCore.Connections
         {
             var name = path.Split('\\').Last();
             var uploadInfo = new UploadInfo(path, name);
+
             AddToUploads(uploadInfo);
 
             var executor = new UploadExecutor();
 
             uploadInfo.LoadState = LoadState.Starting;
             uploadInfo.LoadStop += () => { executor.Stop = true; };
+
+            var documents = new List<Document>();
 
             using (var stream = File.OpenRead(path))
             {
@@ -139,6 +147,14 @@ namespace VkDiskCore.Connections
                         => uploadInfo.ProgressChangedHandler(downloadedSize + (PartSize * uploadInfo.Links.Count), time);
                 else
                     executor.ProgressChanged += uploadInfo.ProgressChangedHandler;
+
+                uploadInfo.Vkd = new Vkd
+                {
+                    Type = VkdTypes.VkdFile,
+                    Name = uploadInfo.Name,
+                    Size = uploadInfo.TotalSize,
+                    Filetype = uploadInfo.Ext
+                };
 
                 var retryCount = 0;
                 while (stream.Position < stream.Length || retryCount < VkDisk.VkDiskSettings.AutoRetryMaxCount)
@@ -157,7 +173,7 @@ namespace VkDiskCore.Connections
                                                 uploadInfo.Links.Count)
                                             : uploadInfo.Name;
 
-                        var link = executor.Upload(stream, localName, partSize);
+                        var document = executor.Upload(stream, localName, partSize);
 
                         if (!uploadInfo.IsVkd)
                         {
@@ -165,7 +181,16 @@ namespace VkDiskCore.Connections
                             return;
                         }
 
-                        uploadInfo.Links.Add(link);
+                        uploadInfo.Vkd.InnerVkds.Add(new Vkd
+                        {
+                            Filetype = "vkdpart",
+                            Id = document.Id,
+                            OwnerId = document.OwnerId,
+                            Link = document.Uri,
+                            Size = document.Size,
+                            Type = VkdTypes.File,
+                            Name = localName
+                        });
                     }
                     catch (Exception e)
                     {
@@ -181,12 +206,7 @@ namespace VkDiskCore.Connections
                     }
                 }
 
-                var sb = new StringBuilder();
-
-                foreach (var url in uploadInfo.Links)
-                    sb.Append(url).Append(Environment.NewLine);
-
-                using (var ms = new MemoryStream(Encoding.Default.GetBytes(sb.ToString())))
+                using (var ms = new MemoryStream(Encoding.Default.GetBytes(JsonConvert.SerializeObject(uploadInfo.Vkd))))
                     new UploadExecutor().Upload(ms, $"{name}.vkd", ms.Length);
 
                 uploadInfo.LoadState = LoadState.Finished;

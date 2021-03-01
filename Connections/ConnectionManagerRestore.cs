@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using VkDiskCore.Connections.Executors;
+using VkDiskCore.Connections.Models;
 using VkDiskCore.Connections.Util;
 using VkDiskCore.Utility;
 
@@ -46,7 +47,8 @@ namespace VkDiskCore.Connections
                     }
 
                     // load links to file parts
-                    var links = GetVkdHeader(info.Src).ToList();
+                    info = GetVkdHeader(info);
+                    var links = info.Vkd == null ? info.Links : GetVkdLinks(info).ToList();
 
                     var part = (int)(info.TotalLoad / PartSize);
 
@@ -104,12 +106,20 @@ namespace VkDiskCore.Connections
                                                ? stream.Length - stream.Position
                                                : PartSize;
 
-                            var link = executor.Upload(
-                                stream,
-                                $"{info.Name.WithNoExtensions()}.{info.Links.Count}.vkdpart",
-                                partSize);
+                            var localName = $"{info.Name.WithNoExtensions()}.{info.Links.Count}.vkdpart";
 
-                            info.Links.Add(link);
+                            var document = executor.Upload(stream, localName, partSize);
+
+                            info.Vkd.InnerVkds.Add(new Vkd
+                            {
+                                Filetype = "vkdpart",
+                                Id = document.Id,
+                                OwnerId = document.OwnerId,
+                                Link = document.Uri,
+                                Size = document.Size,
+                                Type = VkdTypes.File,
+                                Name = localName
+                            });
                         }
                     }
 
